@@ -30,6 +30,7 @@ then
     if [ $dataset == "NELL-995" ]
     then
         NELLFLAG="--test"
+    fi
 
     cd src/MultiHopKG
     export PYTHONPATH=`pwd`
@@ -38,5 +39,6 @@ then
     ./experiment-rs.sh $config --train $gpu --experiment_name $experiment_name $NELLFLAG
     cd ../..
 else
+then
     echo Invalid RL base model specified; taking no action
 fi

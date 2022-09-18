@@ -132,7 +132,7 @@ class LFramework(nn.Module):
                 print(outstr)
 
             # Check in-progress scores
-            if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0:
+            if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0 and self.supervised_learning_mode:
 
                 self.eval()
                 self.batch_size = self.dev_batch_size

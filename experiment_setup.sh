@@ -14,6 +14,7 @@ then
     then
         cat fb60k.tgz.parta* > fb60k.tgz
         rm -rf fb60k.tgz.parta*
+    fi
 
     [ $dataset == "FB15K-237" ] && [ ! -d "/FB15K-237" ] && tar -C /FB15K-237 -xvzf fb15k.tgz || echo "experiment $base_model-$dataset already prepared"
     [ $dataset == "FB60K-NYT10" ] && [ ! -d "/FB60K-NYT10" ] && tar -C /FB60K-NYT10 -xvzf fb60k.tgz || echo "experiment $base_model-$dataset already prepared"
@@ -25,6 +26,7 @@ then
     if [ $dataset == "NELL-995" ]
     then
         NELLFLAG="--test"
+    fi
 
     cd src/MultiHopKG
     export PYTHONPATH=`pwd`

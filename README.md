@@ -66,13 +66,6 @@ To generate heatmaps and training graphs for an experiment, run the following co
 ```
 The heatmap and training graphs will appear in ```<rl Base Model>/<dataset>/<experiment_name>_<current_time>/``` as ```heatmap.png``` and ```training_curves.png``` respectively.
 
-#### Test a pretrained model
-To test a pretrained model, run 
-```
-./infer.sh <rl Base Model>/<dataset>/<experiment_name>_<current_time> <test_name>
-```
-If it doesn't already exist, directory ```<rl Base Model>/<dataset>/<experiment_name>_<current_time>/tests/``` will be created, and the output of this command will appear in that directory as ```<test_name>.txt```.
-
 ## Citation
 If you use this code, please cite our paper and those referenced for the base models
 ```
