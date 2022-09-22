@@ -347,8 +347,12 @@ def get_seen_queries(data_dir, entity_index_path, relation_index_path):
 def get_relations_by_type(data_dir, relation_index_path):
     with open(os.path.join(data_dir, 'raw.kb')) as f:
         triples = list(f.readlines())
-    with open(os.path.join(data_dir, 'train.triples')) as f:
-        triples += list(f.readlines())
+    if "NELL" in data_dir:
+        with open(os.path.join(data_dir, 'train.dev.triples')) as f:
+            triples += list(f.readlines())
+    else:
+        with open(os.path.join(data_dir, 'train.triples')) as f:
+            triples += list(f.readlines())
     triples = list(set(triples))
 
     query_answers = dict()
