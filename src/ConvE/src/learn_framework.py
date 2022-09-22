@@ -127,7 +127,7 @@ class LFramework(nn.Module):
                     reward_reshape = (reward_reshape > 0)
                     num_ep_correct = torch.sum(reward_reshape)
 
-                    outstr = "RL: {0:4d}, epoch count: {1:4d}, overall batch count: {2:4d}, num_hits: {3:7.4f}, avg. reward per batch {4:7.4f}, num_ep_correct {5:4d}, avg_ep_correct {6:7.4f}, train loss {7:7.4f}".format(int(self.supervised_learning_mode), 
+                    outstr = "RL: {0:4d}, epoch count: {1:4d}, overall batch count: {2:4d}, num_hits: {3:7.4f}, avg. reward per batch {4:7.4f}, num_ep_correct {5:4d}, avg_ep_correct {6:7.4f}, train loss {7:7.4f}".format(int(not self.supervised_learning_mode), 
                                                                                                                                                                                                                             epoch_id, 
                                                                                                                                                                                                                             batch_count, 
                                                                                                                                                                                                                             torch.sum(loss['reward']), 

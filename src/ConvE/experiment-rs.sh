@@ -56,6 +56,10 @@ cmd="python3 -m src.experiments \
     $use_action_space_bucketing_flag \
     --conve_state_dict_path $conve_state_dict_path \
     --gpu $gpu \
+    --sl_checkpoints $sl_checkpoints \
+    --total_iterations $total_iterations \
+    --total_iterations_sl $total_iterations_sl \
+    --eval_every $eval_every \
     $ARGS"
 
 echo "Executing $cmd"

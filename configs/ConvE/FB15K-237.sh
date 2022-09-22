@@ -35,7 +35,7 @@ total_iterations=14875
 total_iterations_sl=1000
 eval_every=2975
 
-conve_state_dict_path="../../out/ConvE/FB15K-237_conve_embedding/model_best.tar"
+conve_state_dict_path="../../out/ConvE/FB15K-237/FB15K-237_conve_embedding/model_best.tar"
 
 num_paths_per_entity=-1
 margin=-1

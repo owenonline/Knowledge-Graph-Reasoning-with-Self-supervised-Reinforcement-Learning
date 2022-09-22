@@ -30,12 +30,12 @@ reward_shaping_threshold=0
 beta=0.05
 relation_only="False"
 beam_size=512
-sl_checkpoints=14
-total_iterations=2155
-total_iterations_sl=293
-eval_every=431
+sl_checkpoints=3 #14
+total_iterations=10 #2155
+total_iterations_sl=7 #293
+eval_every=5 #431
 
-conve_state_dict_path="../../out/ConvE/NELL-995_conve_embedding/model_best.tar"
+conve_state_dict_path="../../out/ConvE/NELL-995.TEST/NELL-995.TEST_conve_embedding/model_best.tar"
 
 num_paths_per_entity=-1
 margin=-1

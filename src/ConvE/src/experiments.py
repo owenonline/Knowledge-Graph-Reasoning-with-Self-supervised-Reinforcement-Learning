@@ -170,9 +170,9 @@ def create_sl_checkpoint(checkpoint, orig_args, logger):
 def run_experiment(args):
 
     if args.test:
-        if 'NELL' in args.data_dir:
-            dataset = os.path.basename(args.data_dir)
-            args.conve_state_dict_path = data_utils.change_to_test_model_path(dataset, args.conve_state_dict_path)
+        # if 'NELL' in args.data_dir:
+        #     dataset = os.path.basename(args.data_dir)
+        #     args.conve_state_dict_path = data_utils.change_to_test_model_path(dataset, args.conve_state_dict_path)
         args.data_dir += '.test'
 
     if args.process_data:
