@@ -20,8 +20,7 @@ then
     then
         if [ ! -d "./FB15K-237" ]
         then
-            mkdir "./FB15K-237"
-            tar -C ./FB15K-237 -xvzf fb15k.tgz
+            tar -xvzf fb15k.tgz
         else
             echo "experiment $base_model-$dataset already prepared"
             exit 1
@@ -30,8 +29,7 @@ then
     then
         if [ ! -d "./FB60K-NYT10" ]
         then
-            mkdir "./FB60K-NYT10"
-            tar -C ./FB60K-NYT10 -xvzf fb60k.tgz
+            tar -xvzf fb60k.tgz
         else
             echo "experiment $base_model-$dataset already prepared"
             exit 1
@@ -40,8 +38,7 @@ then
     then
         if [ ! -d "./nell-995" ]
         then
-            mkdir "./nell-995"
-            tar -C ./nell-995 -xvzf nell995.tgz
+            tar -xvzf nell995.tgz
         else
             echo "experiment $base_model-$dataset already prepared"
             exit 1
@@ -50,8 +47,7 @@ then
     then
         if [ ! -d "./WN18RR" ]
         then
-            mkdir "./WN18RR"
-            tar -C ./WN18RR -xvzf wn18rr.tgz
+            tar -xvzf wn18rr.tgz
         else
             echo "experiment $base_model-$dataset already prepared"
             exit 1

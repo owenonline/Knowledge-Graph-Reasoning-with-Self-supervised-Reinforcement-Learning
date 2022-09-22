@@ -7,6 +7,7 @@ embedding_size=50
 batch_size=256
 beta=0.05
 Lambda=0.05
+learning_rate=0.001
 learning_rate_sl=0.001
 use_entity_embeddings=0
 train_entity_embeddings=0

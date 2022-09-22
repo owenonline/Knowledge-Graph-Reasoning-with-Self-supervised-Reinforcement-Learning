@@ -546,6 +546,7 @@ if __name__ == '__main__':
     options['dataset']={}
     Dataset_list=['train','test','dev','graph']
     for dataset in Dataset_list:
+        print(os.getcwd())
         input_file = options['data_input_dir']+dataset+'.txt'
         ds = []
         with open(input_file) as raw_input_file:
