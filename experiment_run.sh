@@ -26,7 +26,7 @@ then
 
     CUDA_VISIBLE_DEVICES=$gpu_id $cmd
     cd ../..
-elif [ $base_model == "MultiHopKG-ConvE" ]
+elif [ $base_model == "ConvE" ]
 then
     NELLFLAG=""
     if [ $dataset == "NELL-995" ]

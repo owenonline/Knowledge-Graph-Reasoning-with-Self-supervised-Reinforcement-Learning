@@ -53,7 +53,7 @@ then
             exit 1
         fi
     fi
-elif [ $base_model == "MultiHopKG-ConvE" ]
+elif [ $base_model == "ConvE" ]
 then
     NELLFLAG=""
     if [ $dataset == "NELL-995" ]
@@ -75,7 +75,7 @@ then
     echo "Preparing ConvE model for $dataset"
     ./experiment-emb.sh ../../configs/ConvE/$dataset-conve.sh --train $gpu $NELLFLAG
 else
-    echo Invalid RL base model specified; taking no action
+    echo "Invalid RL base model specified; taking no action"
 fi
 
 echo "experiment $base_model-$dataset prepared; follow instructions in README to run"

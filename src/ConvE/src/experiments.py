@@ -169,24 +169,24 @@ def create_sl_checkpoint(checkpoint, orig_args, logger):
 
 def run_experiment(args):
 
-    # if args.test:
-    #     if 'NELL' in args.data_dir:
-    #         dataset = os.path.basename(args.data_dir)
-    #         args.distmult_state_dict_path = data_utils.change_to_test_model_path(dataset, args.distmult_state_dict_path)
-    #         args.complex_state_dict_path = data_utils.change_to_test_model_path(dataset, args.complex_state_dict_path)
-    #         args.conve_state_dict_path = data_utils.change_to_test_model_path(dataset, args.conve_state_dict_path)
-    #     args.data_dir += '.test'
+    if args.test:
+        if 'NELL' in args.data_dir:
+            dataset = os.path.basename(args.data_dir)
+            args.conve_state_dict_path = data_utils.change_to_test_model_path(dataset, args.conve_state_dict_path)
+        args.data_dir += '.test'
 
     if args.process_data:
         # Process knowledge graph data
         process_data()
     else:
         with torch.set_grad_enabled(args.train or args.search_random_seed or args.grid_search):
+            dataset = args.data_dir.split("/")[1].upper()
+            args.model_root_dir = args.model_root_dir + dataset + "/"
 
             # Train embedding based model
             if args.model == 'conve':
                 model_root_dir = args.model_root_dir
-                model_sub_dir = args.data_dir.split("/")[1] + "_conve_embedding"
+                model_sub_dir = dataset + "_conve_embedding"
                 model_dir = os.path.join(model_root_dir, model_sub_dir)
 
                 if not os.path.exists(model_dir):
