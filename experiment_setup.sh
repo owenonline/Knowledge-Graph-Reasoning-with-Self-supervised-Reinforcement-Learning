@@ -71,8 +71,7 @@ then
 
     if [ ! -d "./data" ]
     then
-        mkdir "./data"
-        tar -C ./data -xvzf data-release.tgz
+        tar -xvzf data-release.tgz
     fi
 
     echo "Processing $dataset"

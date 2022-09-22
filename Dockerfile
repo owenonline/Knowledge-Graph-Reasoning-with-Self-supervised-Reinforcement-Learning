@@ -1,5 +1,5 @@
 ARG IMAGE_NAME
-FROM nvidia/cuda:11.6.0-devel-ubuntu20.04 as base
+FROM nvidia/cuda:11.6.0-devel-ubuntu18.04 as base
 
 FROM base as base-amd64
 

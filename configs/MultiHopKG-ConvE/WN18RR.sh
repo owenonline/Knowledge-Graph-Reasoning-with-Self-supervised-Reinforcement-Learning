@@ -35,9 +35,7 @@ total_iterations=1680
 total_iterations_sl=179
 eval_every=336
 
-distmult_state_dict_path="model/WN18RR-distmult-xavier-200-200-0.003-0.2-0.1/model_best.tar"
-complex_state_dict_path="model/WN18RR-complex-RV-xavier-200-200-0.003-0.2-0.1/model_best.tar"
-conve_state_dict_path="model/WN18RR-conve-RV-xavier-200-200-0.003-32-3-0.3-0.3-0.2-0.1/model_best.tar"
+conve_state_dict_path="model/WN18RR_conve_embedding/model_best.tar"
 
 num_paths_per_entity=-1
 margin=-1

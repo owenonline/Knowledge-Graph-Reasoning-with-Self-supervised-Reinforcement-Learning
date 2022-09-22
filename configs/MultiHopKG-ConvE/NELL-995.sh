@@ -35,9 +35,7 @@ total_iterations=2155
 total_iterations_sl=293
 eval_every=431
 
-distmult_state_dict_path="model/"
-complex_state_dict_path="model/NELL-995-complex-RV-xavier-200-200-0.003-0.3-0.1/model_best.tar"
-conve_state_dict_path="model/NELL-995-conve-RV-xavier-200-200-0.003-32-3-0.3-0.3-0.2-0.1/model_best.tar"
+conve_state_dict_path="model/NELL-995_conve_embedding/model_best.tar"
 
 num_paths_per_entity=-1
 margin=-1

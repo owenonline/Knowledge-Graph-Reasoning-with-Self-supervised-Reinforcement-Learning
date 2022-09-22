@@ -77,6 +77,7 @@ class LFramework(nn.Module):
                 filter(lambda p: p.requires_grad, self.parameters()), lr=self.learning_rate)
 
         # Track dev metrics changes
+        best_dev_metrics = 0
         dev_metrics_history = []
         batch_count = 0
         epoch_id = 0
@@ -118,21 +119,26 @@ class LFramework(nn.Module):
 
                 self.optim.step()
 
-                reward_reshape = np.reshape(loss['reward'], (self.batch_size, self.args.num_rollouts))
-                reward_reshape = np.sum(reward_reshape, axis=1)
-                reward_reshape = (reward_reshape > 0)
-                num_ep_correct = np.sum(reward_reshape)
+                if self.args.model == 'conve':
+                    outstr = "ConvE, epoch count: {1:4d}, overall batch count: {1:4d}, loss: {2:7.4f}".format(epoch_id, batch_count, loss['print_loss'])
+                else:
+                    reward_reshape = np.reshape(loss['reward'], (self.batch_size, self.args.num_rollouts))
+                    reward_reshape = np.sum(reward_reshape, axis=1)
+                    reward_reshape = (reward_reshape > 0)
+                    num_ep_correct = np.sum(reward_reshape)
 
-
-                outstr = "RL: {0:4d}, epoch count: {1:4d}, overall batch count: {1:4d}, num_hits: {2:7.4f}, avg. reward per batch {3:7.4f}, "+\
-                        "num_ep_correct {4:4d}, avg_ep_correct {5:7.4f}, train loss {6:7.4f}".format(int(self.supervised_learning_mode), epoch_id, batch_count, np.sum(loss['reward']), np.mean(loss['reward']), num_ep_correct,
-                                (num_ep_correct / self.batch_size),
-                                loss['print_loss'])
+                    outstr = "RL: {0:4d}, epoch count: {1:4d}, overall batch count: {1:4d}, num_hits: {2:7.4f}, avg. reward per batch {3:7.4f}, "+\
+                            "num_ep_correct {4:4d}, avg_ep_correct {5:7.4f}, train loss {6:7.4f}".format(int(self.supervised_learning_mode), epoch_id, batch_count, np.sum(loss['reward']), np.mean(loss['reward']), num_ep_correct,
+                                    (num_ep_correct / self.batch_size),
+                                    loss['print_loss'])
                 self.logger.info(outstr)  
                 print(outstr)
 
-            # Check in-progress scores
-            if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0 and self.supervised_learning_mode:
+                if batch_count >= self.args.total_iterations:
+                    break
+
+            # Check in-progress scores for SL portion of RL+SL training
+            if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0 and (self.supervised_learning_mode or self.args.model == 'conve'):
 
                 self.eval()
                 self.batch_size = self.dev_batch_size
@@ -142,20 +148,31 @@ class LFramework(nn.Module):
 
                 print('Dev set performance: (include test set labels)')
                 in_progress_scores = src.eval.hits_and_ranks(dev_data, dev_scores, self.kg.all_objects, verbose=True)
-
-                # write in progress scores to scores file
-                with open(self.args.checkpoint_dir + "scores.txt", 'a+') as scoresfile:
-                    print("writing to scores file")
-                    scoresfile.write("In progress score epoch {} batch {}:\n".format(epoch_id, batch_count)
-                                    + "Hits@1:  {:.4f}\nHits@3:  {:.4f}\nHits@5:  {:.4f}\nHits@10:  {:.4f}\nMRR:  {:.4f}\n\n".format(*in_progress_scores))
-                # Action dropout annealing
+                
                 if self.model.startswith('point'):
+
+                    # write in progress scores to scores file
+                    with open(self.args.checkpoint_dir + "scores.txt", 'a+') as scoresfile:
+                        print("writing to scores file")
+                        scoresfile.write("In progress score epoch {} batch {}:\n".format(epoch_id, batch_count)
+                                        + "Hits@1:  {:.4f}\nHits@3:  {:.4f}\nHits@5:  {:.4f}\nHits@10:  {:.4f}\nMRR:  {:.4f}\n\n".format(*in_progress_scores))
+
+                    # Action dropout annealing
                     eta = self.action_dropout_anneal_interval
                     if len(dev_metrics_history) > eta and metrics < min(dev_metrics_history[-eta:]):
                         old_action_dropout_rate = self.action_dropout_rate
                         self.action_dropout_rate *= self.action_dropout_anneal_factor 
                         print('Decreasing action dropout rate: {} -> {}'.format(
                             old_action_dropout_rate, self.action_dropout_rate))
+
+                else:
+                    # save best conve model
+                    if metrics > best_dev_metrics:
+                        self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id)
+                        best_dev_metrics = metrics
+                        with open(os.path.join(self.model_dir, 'best_dev_iteration.dat'), 'w') as o_f:
+                            o_f.write('{}'.format(epoch_id))
+
 
     def forward(self, examples, verbose=False):
 
@@ -223,9 +240,9 @@ class LFramework(nn.Module):
         for _ in range(batch_size - len(mini_batch)):
             mini_batch.append(dummy_example)
 
-    def save_checkpoint(self, checkpoint_id, epoch_id=None, is_best=False):
+    def save_checkpoint(self, checkpoint_id, epoch_id=None):
         """
-        Save model checkpoint.
+        Save a new best conve model checkpoint.
         :param checkpoint_id: Model checkpoint index assigned by training loop.
         :param epoch_id: Model epoch index assigned by training loop.
         :param is_best: if set, the model being saved is the best model on dev set.
@@ -235,13 +252,9 @@ class LFramework(nn.Module):
         checkpoint_dict['epoch_id'] = epoch_id
 
         out_tar = os.path.join(self.model_dir, 'checkpoint-{}.tar'.format(checkpoint_id))
-        if is_best:
-            best_path = os.path.join(self.model_dir, 'model_best.tar')
-            shutil.copyfile(out_tar, best_path)
-            print('=> best model updated \'{}\''.format(best_path))
-        else:
-            torch.save(checkpoint_dict, out_tar)
-            print('=> saving checkpoint to \'{}\''.format(out_tar))
+        best_path = os.path.join(self.model_dir, 'model_best.tar')
+        shutil.copyfile(out_tar, best_path)
+        print('=> best model updated \'{}\''.format(best_path))
 
     def load_checkpoint(self, input_file):
         """

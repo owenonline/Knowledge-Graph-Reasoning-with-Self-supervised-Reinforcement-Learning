@@ -73,7 +73,7 @@ def construct_model(args, logger):
         lf = RewardShapingPolicyGradient(args, kg, pn, fn_kg, fn, logger)
     elif args.model == 'conve':
         fn = ConvE(args, kg.num_entities)
-        lf = EmbeddingBasedMethod(args, kg, fn)
+        lf = EmbeddingBasedMethod(args, kg, fn, logger)
     else:
         raise NotImplementedError
     return lf
@@ -183,57 +183,90 @@ def run_experiment(args):
     else:
         with torch.set_grad_enabled(args.train or args.search_random_seed or args.grid_search):
 
-            model_root_dir = args.model_root_dir
-            model_sub_dir = args.experiment_name + "_" + datetime.now().strftime("%m%d%Y_%H%M%S")
-            model_dir = os.path.join(model_root_dir, model_sub_dir)
+            # Train embedding based model
+            if args.model == 'conve':
+                model_root_dir = args.model_root_dir
+                model_sub_dir = args.data_dir.split("/")[1] + "_conve_embedding"
+                model_dir = os.path.join(model_root_dir, model_sub_dir)
 
-            if not os.path.exists(model_dir):
-                os.makedirs(model_dir)
-                print('Model directory created: {}'.format(model_dir))
-            else:
-                print('Model directory exists: {}'.format(model_dir))
+                if not os.path.exists(model_dir):
+                    os.makedirs(model_dir)
+                    print('Model directory created: {}'.format(model_dir))
+                else:
+                    print('Model directory exists: {}'.format(model_dir))
 
-            args.model_dir = model_dir
-            args.training_state_dicts = args.model_dir + "/model/"
-            os.mkdir(args.training_state_dicts)
-            args.log_file_name = args.model_dir + '/log.txt'
+                args.model_dir = model_dir
+                args.sl = False
 
-            with open(args.model_dir + '/config.txt', 'w') as out:
-                pprint(args, stream=out)
+                # Set logging
+                args.log_file_name = args.model_dir + "/log.txt"
+                logger.setLevel(logging.INFO)
+                fmt = logging.Formatter('%(asctime)s: [ %(message)s ]',
+                                        '%m/%d/%Y %I:%M:%S %p')
+                console = logging.StreamHandler()
+                console.setFormatter(fmt)
+                logger.addHandler(console)
+                logfile = logging.FileHandler(args.log_file_name, 'w')
+                logfile.setFormatter(fmt)
+                logger.addHandler(logfile)
 
-            original_args = copy.deepcopy(args)
+                lf = construct_model(args, logger)
+                lf.cuda()
 
-            # Set logging
-            logger.setLevel(logging.INFO)
-            fmt = logging.Formatter('%(asctime)s: [ %(message)s ]',
-                                    '%m/%d/%Y %I:%M:%S %p')
-            console = logging.StreamHandler()
-            console.setFormatter(fmt)
-            logger.addHandler(console)
-            logfile = logging.FileHandler(args.log_file_name, 'w')
-            logfile.setFormatter(fmt)
-            logger.addHandler(logfile)
-
-            # Create the SL trainer
-            args.sl = True
-            args.learning_rate = args.learning_rate_sl
-            args.checkpoint_path = None
-            args.total_iterations = args.total_iterations_sl
-            lf = construct_model(args, logger)
-            lf.cuda()
-
-            # Create checkpoint for pure RL run
-            last_epoch = 0
-            torch.save(lf.state_dict(), args.training_state_dicts + "model_checkpoint.pth")
-            create_sl_checkpoint(last_epoch, copy.deepcopy(original_args))
-            lf.load_state_dict(torch.load(args.training_state_dicts + "model_checkpoint.pth"))
-
-            for ckpt in range(1, original_args.sl_checkpoints):
                 train(lf)
+            # Train RL+SL model
+            else:
+                model_root_dir = args.model_root_dir
+                model_sub_dir = args.experiment_name + "_" + datetime.now().strftime("%m%d%Y_%H%M%S")
+                model_dir = os.path.join(model_root_dir, model_sub_dir)
 
+                if not os.path.exists(model_dir):
+                    os.makedirs(model_dir)
+                    print('Model directory created: {}'.format(model_dir))
+                else:
+                    print('Model directory exists: {}'.format(model_dir))
+
+                args.model_dir = model_dir
+                args.training_state_dicts = args.model_dir + "/model/"
+                os.mkdir(args.training_state_dicts)
+                args.log_file_name = args.model_dir + '/log.txt'
+
+                with open(args.model_dir + '/config.txt', 'w') as out:
+                    pprint(args, stream=out)
+
+                original_args = copy.deepcopy(args)
+
+                # Set logging
+                logger.setLevel(logging.INFO)
+                fmt = logging.Formatter('%(asctime)s: [ %(message)s ]',
+                                        '%m/%d/%Y %I:%M:%S %p')
+                console = logging.StreamHandler()
+                console.setFormatter(fmt)
+                logger.addHandler(console)
+                logfile = logging.FileHandler(args.log_file_name, 'w')
+                logfile.setFormatter(fmt)
+                logger.addHandler(logfile)
+
+                # Create the SL trainer
+                args.sl = True
+                args.learning_rate = args.learning_rate_sl
+                args.checkpoint_path = None
+                args.total_iterations = args.total_iterations_sl
+                lf = construct_model(args, logger)
+                lf.cuda()
+
+                # Create checkpoint for pure RL run
+                last_epoch = 0
                 torch.save(lf.state_dict(), args.training_state_dicts + "model_checkpoint.pth")
-                create_sl_checkpoint(ckpt, copy.deepcopy(original_args))
+                create_sl_checkpoint(last_epoch, copy.deepcopy(original_args))
                 lf.load_state_dict(torch.load(args.training_state_dicts + "model_checkpoint.pth"))
+
+                for ckpt in range(1, original_args.sl_checkpoints):
+                    train(lf)
+
+                    torch.save(lf.state_dict(), args.training_state_dicts + "model_checkpoint.pth")
+                    create_sl_checkpoint(ckpt, copy.deepcopy(original_args))
+                    lf.load_state_dict(torch.load(args.training_state_dicts + "model_checkpoint.pth"))
 
 if __name__ == '__main__':
     run_experiment(args)

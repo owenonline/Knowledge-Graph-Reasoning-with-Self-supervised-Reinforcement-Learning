@@ -19,8 +19,8 @@ from src.utils.ops import var_cuda, int_var_cuda, int_fill_var_cuda
 
 
 class EmbeddingBasedMethod(LFramework):
-    def __init__(self, args, kg, mdl, secondary_kg=None, tertiary_kg=None):
-        super(EmbeddingBasedMethod, self).__init__(args, kg, mdl)
+    def __init__(self, args, kg, mdl, logger, secondary_kg=None, tertiary_kg=None):
+        super(EmbeddingBasedMethod, self).__init__(args, kg, mdl, logger)
         self.num_negative_samples = args.num_negative_samples
         self.label_smoothing_epsilon = args.label_smoothing_epsilon
         self.loss_fun = nn.BCELoss()
