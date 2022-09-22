@@ -35,7 +35,7 @@ parser.add_argument('--run_analysis', action='store_true',
                     help='run algorithm analysis and print intermediate results (default: False)')
 parser.add_argument('--data_dir', type=str, default=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data'),
                     help='directory where the knowledge graph data is stored (default: None)')
-parser.add_argument('--model_root_dir', type=str, default=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'model'),
+parser.add_argument('--model_root_dir', type=str, default='../../out/ConvE/',
                     help='root directory where the model parameters are stored (default: None)')
 parser.add_argument('--model_dir', type=str, default=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'model'),
                     help='directory where the model parameters are stored (default: None)')

@@ -35,7 +35,7 @@ total_iterations=2155
 total_iterations_sl=293
 eval_every=431
 
-conve_state_dict_path="model/NELL-995_conve_embedding/model_best.tar"
+conve_state_dict_path="../../out/ConvE/NELL-995_conve_embedding/model_best.tar"
 
 num_paths_per_entity=-1
 margin=-1

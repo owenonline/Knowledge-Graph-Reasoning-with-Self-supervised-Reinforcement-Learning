@@ -7,6 +7,7 @@
  Policy gradient with reward shaping.
 """
 
+import os
 from tqdm import tqdm
 
 import torch
@@ -30,38 +31,16 @@ class RewardShapingPolicyGradient(PolicyGradient):
         self.mu = args.mu
 
         fn_model = self.fn_model
-        if fn_model in ['conve']:
-            try:
-                fn_state_dict = torch.load(args.conve_state_dict_path)
-            except:
-                fn_state_dict = torch.load("/lustre/fs0/home/oburns/MultiHopKG/model/NELL-995.test-conve-RV-xavier-200-200-0.003-32-3-0.3-0.3-0.2-0.1-testsoskiqlgooTEST-test/model_best.tar")
-            fn_nn_state_dict = get_conve_nn_state_dict(fn_state_dict)
-            fn_kg_state_dict = get_conve_kg_state_dict(fn_state_dict)
-            self.fn.load_state_dict(fn_nn_state_dict)
-        elif fn_model == 'distmult':
-            fn_state_dict = torch.load(args.distmult_state_dict_path)
-            fn_kg_state_dict = get_distmult_kg_state_dict(fn_state_dict)
-        elif fn_model == 'complex':
-            fn_state_dict = torch.load(args.complex_state_dict_path)
-            fn_kg_state_dict = get_complex_kg_state_dict(fn_state_dict)
-        elif fn_model == 'hypere':
-            fn_state_dict = torch.load(args.conve_state_dict_path)
-            fn_kg_state_dict = get_conve_kg_state_dict(fn_state_dict)
-        else:
-            raise NotImplementedError
+        fn_state_dict = torch.load(args.conve_state_dict_path)
+        fn_nn_state_dict = get_conve_nn_state_dict(fn_state_dict)
+        fn_kg_state_dict = get_conve_kg_state_dict(fn_state_dict)
+        self.fn.load_state_dict(fn_nn_state_dict)
         self.fn_kg.load_state_dict(fn_kg_state_dict)
-        if fn_model == 'hypere':
-            complex_state_dict = torch.load(args.complex_state_dict_path)
-            complex_kg_state_dict = get_complex_kg_state_dict(complex_state_dict)
-            self.fn_secondary_kg.load_state_dict(complex_kg_state_dict)
 
         self.fn.eval()
         self.fn_kg.eval()
         ops.detach_module(self.fn)
         ops.detach_module(self.fn_kg)
-        if fn_model == 'hypere':
-            self.fn_secondary_kg.eval()
-            ops.detach_module(self.fn_secondary_kg)
 
     def reward_fun(self, e1, r, e2, pred_e2):
         if self.model.endswith('.rso'):
