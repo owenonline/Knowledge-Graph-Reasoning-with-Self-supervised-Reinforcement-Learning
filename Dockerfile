@@ -50,5 +50,5 @@ RUN pip install tqdm==4.64.0 &&\
      pip install seaborn==0.11.2
 
 WORKDIR /workspace
-RUN mkdir exp_src
-WORKDIR  exp_src
+RUN mkdir KGSSRL
+WORKDIR /workspace/KGSSRL
