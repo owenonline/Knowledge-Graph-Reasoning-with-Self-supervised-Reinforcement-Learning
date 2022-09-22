@@ -28,11 +28,17 @@ then
     cd ../..
 elif [ $base_model == "ConvE" ]
 then
+    NELLFLAG=""
+    if [ $dataset == "NELL-995" ]
+    then
+        NELLFLAG="--test"
+    fi
+
     cd src/ConvE
     export PYTHONPATH=`pwd`
     echo $PYTHONPATH
 
-    ./experiment-rs.sh $config --train $gpu --experiment_name $experiment_name
+    ./experiment-rs.sh $config --train $gpu --experiment_name $experiment_name $NELLFLAG
     cd ../..
 else
     echo "Invalid RL base model specified; taking no action"

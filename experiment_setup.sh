@@ -55,6 +55,12 @@ then
     fi
 elif [ $base_model == "ConvE" ]
 then
+    NELLFLAG=""
+    if [ $dataset == "NELL-995" ]
+    then
+        NELLFLAG="--test"
+    fi
+
     cd src/ConvE
     export PYTHONPATH=`pwd`
     echo $PYTHONPATH
@@ -65,9 +71,9 @@ then
     fi
 
     echo "Processing $dataset"
-    ./experiment.sh ../../configs/ConvE/$dataset.sh --process_data $gpu
+    ./experiment.sh ../../configs/ConvE/$dataset.sh --process_data $gpu $NELLFLAG
     echo "Preparing ConvE model for $dataset"
-    ./experiment-emb.sh ../../configs/ConvE/$dataset-conve.sh --train $gpu
+    ./experiment-emb.sh ../../configs/ConvE/$dataset-conve.sh --train $gpu $NELLFLAG
 else
     echo "Invalid RL base model specified; taking no action"
 fi
