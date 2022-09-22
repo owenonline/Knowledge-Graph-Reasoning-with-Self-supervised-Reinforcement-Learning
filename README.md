@@ -40,7 +40,7 @@ The following datasets are available: `FB15K-237`, `FB60K-NYT10` (only available
 #### Run an experiment
 Run the following command to train a model
 ```
-./experiment_run.sh configs/<rl Base Model>/<dataset>.sh <gpu-ID> <experiment_name>
+./experiment_run.sh <rl Base Model> <dataset> <gpu-ID> <experiment_name>
 ```
 experiment_name will be used to name the experiment's output folder, which will be located in the out/ directory. The structure of the output directory is as follows
 ```

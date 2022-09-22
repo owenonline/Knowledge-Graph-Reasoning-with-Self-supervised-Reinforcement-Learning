@@ -1,14 +1,16 @@
 #!/bin/bash
 
-config=$1
-gpu=$2
-experiment_name=$3
+base_model=$1
+dataset=$2
+gpu=$3
+experiment_name=$4
+config="../../configs/$base_model/$dataset.sh"
 
 if [ $base_model == "MINERVA" ]
 then
     TF_GPU_ALLOCATOR=cuda_malloc_async
 
-    cd src/MINERVA_tf2
+    cd src/MINERVA
     export PYTHONPATH=`pwd`
     echo $PYTHONPATH
 
@@ -24,7 +26,7 @@ then
 
     CUDA_VISIBLE_DEVICES=$gpu_id $cmd
     cd ../..
-elif [ $base_model == "MultiHopKG-ConvE"]
+elif [ $base_model == "MultiHopKG-ConvE" ]
 then
     NELLFLAG=""
     if [ $dataset == "NELL-995" ]
@@ -32,13 +34,12 @@ then
         NELLFLAG="--test"
     fi
 
-    cd src/MultiHopKG
+    cd src/ConvE
     export PYTHONPATH=`pwd`
     echo $PYTHONPATH
 
     ./experiment-rs.sh $config --train $gpu --experiment_name $experiment_name $NELLFLAG
     cd ../..
 else
-then
-    echo Invalid RL base model specified; taking no action
+    echo "Invalid RL base model specified; taking no action"
 fi
