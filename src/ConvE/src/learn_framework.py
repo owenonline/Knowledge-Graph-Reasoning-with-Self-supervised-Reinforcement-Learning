@@ -122,17 +122,20 @@ class LFramework(nn.Module):
                 if self.args.model == 'conve':
                     outstr = "ConvE, epoch count: {0:4d}, overall batch count: {1:4d}, loss: {2:7.4f}".format(epoch_id, batch_count, loss['print_loss'])
                 else:
-                    reward_reshape = np.reshape(loss['reward'], (self.batch_size, self.args.num_rollouts))
-                    reward_reshape = np.sum(reward_reshape, axis=1)
+                    reward_reshape = torch.reshape(loss['reward'], (self.batch_size, self.args.num_rollouts))
+                    reward_reshape = torch.sum(reward_reshape, axis=1)
                     reward_reshape = (reward_reshape > 0)
-                    num_ep_correct = np.sum(reward_reshape)
+                    num_ep_correct = torch.sum(reward_reshape)
 
-                    outstr = "RL: {0:4d}, epoch count: {1:4d}, overall batch count: {1:4d}, num_hits: {2:7.4f}, avg. reward per batch {3:7.4f}, "+\
-                            "num_ep_correct {4:4d}, avg_ep_correct {5:7.4f}, train loss {6:7.4f}".format(int(self.supervised_learning_mode), epoch_id, batch_count, np.sum(loss['reward']), np.mean(loss['reward']), num_ep_correct,
-                                    (num_ep_correct / self.batch_size),
-                                    loss['print_loss'])
-                self.logger.info(outstr)  
-                print(outstr)
+                    outstr = "RL: {0:4d}, epoch count: {1:4d}, overall batch count: {2:4d}, num_hits: {3:7.4f}, avg. reward per batch {4:7.4f}, num_ep_correct {5:4d}, avg_ep_correct {6:7.4f}, train loss {7:7.4f}".format(int(self.supervised_learning_mode), 
+                                                                                                                                                                                                                            epoch_id, 
+                                                                                                                                                                                                                            batch_count, 
+                                                                                                                                                                                                                            torch.sum(loss['reward']), 
+                                                                                                                                                                                                                            torch.mean(loss['reward']), 
+                                                                                                                                                                                                                            num_ep_correct, 
+                                                                                                                                                                                                                            (num_ep_correct / self.batch_size), 
+                                                                                                                                                                                                                            loss['print_loss'])
+                self.logger.info(outstr)
 
                 # training for RL+SL model is based in batches
                 if batch_count >= self.args.total_iterations and self.args.model != 'conve':

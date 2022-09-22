@@ -139,7 +139,7 @@ def inference_sl(lf, orig_args):
         scoresfile.write("End of RL performance performance:\n"
                         + "Hits@1:  {:.4f}\nHits@3:  {:.4f}\nHits@5:  {:.4f}\nHits@10:  {:.4f}\nMRR:  {:.4f}\n\n".format(*test_metrics))
 
-def create_sl_checkpoint(checkpoint, orig_args):
+def create_sl_checkpoint(checkpoint, orig_args, logger):
     original_model_dir = orig_args.training_state_dicts
 
     # make checkpoint folder
@@ -152,7 +152,7 @@ def create_sl_checkpoint(checkpoint, orig_args):
 
     # make trainer
     orig_args.sl = False
-    lf_rl = construct_model(orig_args)
+    lf_rl = construct_model(orig_args, logger)
     lf_rl.cuda()
     lf_rl.load_state_dict(torch.load(original_model_dir + "model_checkpoint.pth"))
 
@@ -259,14 +259,14 @@ def run_experiment(args):
                 # Create checkpoint for pure RL run
                 last_epoch = 0
                 torch.save(lf.state_dict(), args.training_state_dicts + "model_checkpoint.pth")
-                create_sl_checkpoint(last_epoch, copy.deepcopy(original_args))
+                create_sl_checkpoint(last_epoch, copy.deepcopy(original_args), logger)
                 lf.load_state_dict(torch.load(args.training_state_dicts + "model_checkpoint.pth"))
 
                 for ckpt in range(1, original_args.sl_checkpoints):
                     train(lf)
 
                     torch.save(lf.state_dict(), args.training_state_dicts + "model_checkpoint.pth")
-                    create_sl_checkpoint(ckpt, copy.deepcopy(original_args))
+                    create_sl_checkpoint(ckpt, copy.deepcopy(original_args), logger)
                     lf.load_state_dict(torch.load(args.training_state_dicts + "model_checkpoint.pth"))
 
 if __name__ == '__main__':

@@ -54,8 +54,6 @@ cmd="python3 -m src.experiments \
     --num_paths_per_entity $num_paths_per_entity \
     $group_examples_by_query_flag \
     $use_action_space_bucketing_flag \
-    --distmult_state_dict_path $distmult_state_dict_path \
-    --complex_state_dict_path $complex_state_dict_path \
     --conve_state_dict_path $conve_state_dict_path \
     --gpu $gpu \
     $ARGS"

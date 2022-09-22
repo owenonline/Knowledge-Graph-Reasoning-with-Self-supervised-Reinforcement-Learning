@@ -151,10 +151,6 @@ parser.add_argument('--num_out_channels', type=int, default=32,
                     help='ConvE number of output channels of the convolution layer (default: 32)')
 parser.add_argument('--kernel_size', type=int, default=3,
                     help='ConvE kernel size (default: 3)')
-parser.add_argument('--distmult_state_dict_path', type=str, default='',
-                    help='Path to the DistMult network state_dict (default: '')')
-parser.add_argument('--complex_state_dict_path', type=str, default='',
-                    help='Path to the ComplEx network state dict (default: '')')
 parser.add_argument('--conve_state_dict_path', type=str, default='',
                     help='Path to the ConvE network state dict (default: '')')
 
