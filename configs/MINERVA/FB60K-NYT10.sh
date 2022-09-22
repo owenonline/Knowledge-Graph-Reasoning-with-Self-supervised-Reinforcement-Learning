@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-base_output_dir="../../out/MINERVA/fb60k-nyt10/"
+base_output_dir="../../out/MINERVA/FB60K-NYT10/"
 path_length=3
 hidden_size=50
 embedding_size=50
@@ -16,6 +16,5 @@ data_input_dir="datasets/data_preprocessed/FB60K-NYT10/"
 vocab_dir="datasets/data_preprocessed/FB60K-NYT10/vocab"
 load_model=0
 sl_checkpoints=10
-model_name="FB60K-NYT10_reltest"
 total_iterations_sl=1000
 total_iterations=6000

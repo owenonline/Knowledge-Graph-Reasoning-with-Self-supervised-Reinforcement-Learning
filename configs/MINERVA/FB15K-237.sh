@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-base_output_dir="../../out/MINERVA/fb15k-237/"
+base_output_dir="../../out/MINERVA/FB15K-237/"
 path_length=3
 hidden_size=50
 embedding_size=50
@@ -16,6 +16,5 @@ data_input_dir="datasets/data_preprocessed/FB15K-237/"
 vocab_dir="datasets/data_preprocessed/FB15K-237/vocab"
 load_model=0
 sl_checkpoints=16
-model_name="FB15K-237_pathnum"
 total_iterations=7001
 total_iterations_sl=1000

@@ -16,7 +16,6 @@ data_input_dir="datasets/data_preprocessed/WN18RR/"
 vocab_dir="datasets/data_preprocessed/WN18RR/vocab"
 load_model=0
 sl_checkpoints=10
-model_name="WN18RR_reltest"
 total_iterations=1000
 total_iterations_sl=575
 num_cycles=10

@@ -307,8 +307,7 @@ class Trainer(object):
                                                                               state['next_entities'],
                                                                               model_state, previous_relation, query_embedding,
                                                                               state['current_entities'],  
-                                                                              range_arr=self.range_arr_test,
-                                                                              first_step_of_test = self.first_state_of_test)
+                                                                              range_arr=self.range_arr_test)
                 agent_mem = tf.stack(agent_mem)
                 agent_mem = agent_mem.numpy()
                 test_scores = test_scores.numpy()
