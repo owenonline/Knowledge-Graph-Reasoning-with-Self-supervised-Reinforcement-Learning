@@ -20,7 +20,7 @@ then
         --batch_size $batch_size --beta $beta --Lambda $Lambda --learning_rate $learning_rate --learning_rate_sl $learning_rate_sl \
         --use_entity_embeddings $use_entity_embeddings  --train_entity_embeddings $train_entity_embeddings --train_relation_embeddings $train_relation_embeddings \
         --data_input_dir $data_input_dir --vocab_dir $vocab_dir --load_model $load_model --total_iterations $total_iterations \
-        --total_iterations_sl $total_iterations_sl --model_name $experiment_name"
+        --total_iterations_sl $total_iterations_sl --model_name $experiment_name --sl_checkpoints $sl_checkpoints"
 
     echo "Executing $cmd"
 
@@ -28,17 +28,11 @@ then
     cd ../..
 elif [ $base_model == "ConvE" ]
 then
-    NELLFLAG=""
-    if [ $dataset == "NELL-995" ]
-    then
-        NELLFLAG="--test"
-    fi
-
     cd src/ConvE
     export PYTHONPATH=`pwd`
     echo $PYTHONPATH
 
-    ./experiment-rs.sh $config --train $gpu --experiment_name $experiment_name $NELLFLAG
+    ./experiment-rs.sh $config --train $gpu --experiment_name $experiment_name
     cd ../..
 else
     echo "Invalid RL base model specified; taking no action"

@@ -36,7 +36,7 @@ then
         fi
     elif [ $dataset == "NELL-995" ]
     then
-        if [ ! -d "./nell-995" ]
+        if [ ! -d "./NELL-995" ]
         then
             tar -xvzf nell995.tgz
         else
@@ -55,12 +55,6 @@ then
     fi
 elif [ $base_model == "ConvE" ]
 then
-    NELLFLAG=""
-    if [ $dataset == "NELL-995" ]
-    then
-        NELLFLAG="--test"
-    fi
-
     cd src/ConvE
     export PYTHONPATH=`pwd`
     echo $PYTHONPATH
@@ -71,9 +65,9 @@ then
     fi
 
     echo "Processing $dataset"
-    ./experiment.sh ../../configs/ConvE/$dataset.sh --process_data $gpu $NELLFLAG
+    ./experiment.sh ../../configs/ConvE/$dataset.sh --process_data $gpu
     echo "Preparing ConvE model for $dataset"
-    ./experiment-emb.sh ../../configs/ConvE/$dataset-conve.sh --train $gpu $NELLFLAG
+    ./experiment-emb.sh ../../configs/ConvE/$dataset-conve.sh --train $gpu
 else
     echo "Invalid RL base model specified; taking no action"
 fi
