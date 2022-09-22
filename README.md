@@ -31,11 +31,11 @@ Run the following command to set up an experiment
 ```
 ./experiment_setup.sh <rl Base Model> <dataset> <gpu-ID>
 ```
-The following rl base models are implemented: `MINERVA`, and `MultiHopKG-ConvE`.
+The following rl base models are implemented: `MINERVA`, and `ConvE`.
 The following datasets are available: `FB15K-237`, `FB60K-NYT10` (only available for `MINERVA` base model), `NELL-995`, and `WN18RR`.
 `<gpu-ID>` is a non-negative integer number representing the GPU index.
 
-* Note: Setup will take a while for any experiment using `MultiHopKG-ConvE` as the RL base model as a standalone ConvE model must be trained to be used for reward shaping.
+* Note: Setup will take a while for any experiment using `ConvE` as the RL base model as a standalone ConvE model must be trained to be used for reward shaping.
 
 #### Run an experiment
 Run the following command to train a model

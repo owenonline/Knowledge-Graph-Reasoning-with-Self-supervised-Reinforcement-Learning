@@ -75,9 +75,9 @@ then
     fi
 
     echo "Processing $dataset"
-    ./experiment.sh ../../configs/MultiHopKG-ConvE/$dataset.sh --process_data $gpu $NELLFLAG
+    ./experiment.sh ../../configs/ConvE/$dataset.sh --process_data $gpu $NELLFLAG
     echo "Preparing ConvE model for $dataset"
-    ./experiment-emb.sh ../../configs/MultiHopKG-ConvE/$dataset-conve.sh --train $gpu $NELLFLAG
+    ./experiment-emb.sh ../../configs/ConvE/$dataset-conve.sh --train $gpu $NELLFLAG
 else
     echo Invalid RL base model specified; taking no action
 fi
