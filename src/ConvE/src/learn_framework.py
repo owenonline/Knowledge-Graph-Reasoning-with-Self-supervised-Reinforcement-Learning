@@ -82,7 +82,7 @@ class LFramework(nn.Module):
         batch_count = 0
         epoch_id = 0
 
-        while batch_count < self.args.total_iterations:
+        while (batch_count if self.args.model != 'conve' else epoch_id) < self.args.total_iterations:
             epoch_id += 1
 
             if self.rl_variation_tag.startswith('rs'):
@@ -120,7 +120,7 @@ class LFramework(nn.Module):
                 self.optim.step()
 
                 if self.args.model == 'conve':
-                    outstr = "ConvE, epoch count: {1:4d}, overall batch count: {1:4d}, loss: {2:7.4f}".format(epoch_id, batch_count, loss['print_loss'])
+                    outstr = "ConvE, epoch count: {0:4d}, overall batch count: {1:4d}, loss: {2:7.4f}".format(epoch_id, batch_count, loss['print_loss'])
                 else:
                     reward_reshape = np.reshape(loss['reward'], (self.batch_size, self.args.num_rollouts))
                     reward_reshape = np.sum(reward_reshape, axis=1)
@@ -134,10 +134,15 @@ class LFramework(nn.Module):
                 self.logger.info(outstr)  
                 print(outstr)
 
-                if batch_count >= self.args.total_iterations:
+                # training for RL+SL model is based in batches
+                if batch_count >= self.args.total_iterations and self.args.model != 'conve':
                     break
 
-            # Check in-progress scores for SL portion of RL+SL training
+            # save model for conve
+            if self.args.model == 'conve':
+                self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id)
+
+            # Check in-progress scores for SL portion of RL+SL training, and save the best embedding model when running experiment_setup.sh for MultiHopKG-ConvE base model
             if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0 and (self.supervised_learning_mode or self.args.model == 'conve'):
 
                 self.eval()
@@ -168,7 +173,7 @@ class LFramework(nn.Module):
                 else:
                     # save best conve model
                     if metrics > best_dev_metrics:
-                        self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id)
+                        self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id, is_best=True)
                         best_dev_metrics = metrics
                         with open(os.path.join(self.model_dir, 'best_dev_iteration.dat'), 'w') as o_f:
                             o_f.write('{}'.format(epoch_id))
@@ -240,9 +245,9 @@ class LFramework(nn.Module):
         for _ in range(batch_size - len(mini_batch)):
             mini_batch.append(dummy_example)
 
-    def save_checkpoint(self, checkpoint_id, epoch_id=None):
+    def save_checkpoint(self, checkpoint_id, epoch_id=None, is_best=False):
         """
-        Save a new best conve model checkpoint.
+        Save model checkpoint.
         :param checkpoint_id: Model checkpoint index assigned by training loop.
         :param epoch_id: Model epoch index assigned by training loop.
         :param is_best: if set, the model being saved is the best model on dev set.
@@ -252,9 +257,13 @@ class LFramework(nn.Module):
         checkpoint_dict['epoch_id'] = epoch_id
 
         out_tar = os.path.join(self.model_dir, 'checkpoint-{}.tar'.format(checkpoint_id))
-        best_path = os.path.join(self.model_dir, 'model_best.tar')
-        shutil.copyfile(out_tar, best_path)
-        print('=> best model updated \'{}\''.format(best_path))
+        if is_best:
+            best_path = os.path.join(self.model_dir, 'model_best.tar')
+            shutil.copyfile(out_tar, best_path)
+            print('=> best model updated \'{}\''.format(best_path))
+        else:
+            torch.save(checkpoint_dict, out_tar)
+            print('=> saving checkpoint to \'{}\''.format(out_tar))
 
     def load_checkpoint(self, input_file):
         """

@@ -197,6 +197,7 @@ def run_experiment(args):
 
                 args.model_dir = model_dir
                 args.sl = False
+                args.total_iterations = args.num_epochs # unlike RL+SL training, embedding model training is delimited by epochs instead of batches
 
                 # Set logging
                 args.log_file_name = args.model_dir + "/log.txt"
