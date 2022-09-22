@@ -15,7 +15,7 @@ docker build -< Dockerfile -t kg_ssrl:v1.0
 
 Spin up a docker container and run experiments inside it.
 ```
-nvidia-docker run -v `pwd`:/workspace/KGSSRL -it kg_ssrl:v1.0
+docker run -v `pwd`:/workspace/KGSSRL -it kg_ssrl:v1.0
 ```
 *The rest of the readme assumes that one works interactively inside a container. If you prefer to run experiments outside a container, please change the commands accordingly.*
 
