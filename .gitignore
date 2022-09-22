@@ -1,0 +1,7 @@
+./out/
+./src/ConvE/data/
+./src/MINERVA/datasets/data_preprocessed/FB15K-237/
+./src/MINERVA/datasets/data_preprocessed/FB60K-NYT10/
+./src/MINERVA/datasets/data_preprocessed/NELL-995/
+./src/MINERVA/datasets/data_preprocessed/WN18RR/
+*/__pycache__/
