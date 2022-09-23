@@ -1,3 +1,4 @@
+import enum
 import re
 import numpy as np
 import matplotlib
@@ -14,23 +15,70 @@ parser.add_argument("--iterations_sl", default=0, type=int)
 parser.add_argument("--iterations_rl", default=0, type=int)
 parsed = vars(parser.parse_args())
 
-plt.rcParams.update({'font.size': 30})
-plt.figure(figsize=(25,12))
-
 def moving_average(a, n=3) :
     ret = np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
+################
+# Get heatmaps #
+################
+
+num_rl = len([name for name in os.listdir(parsed['experiment']) if "checkpoint_sl_epoch_" in name])
+num_sl = num_rl - 1
+
+lbls = list(range(num_rl))
+
+raw_data = []
+zeroed_data = []
+first_iter = []
+with open(parsed['experiment'] + "/checkpoint_sl_epoch_0/scores.txt","r") as scores:
+    chunk = scores.read().split("Final score:")[1]
+    first_iter.append(float(chunk.split("Hits@1:  ")[1].split("\n")[0]))
+    first_iter.append(float(chunk.split("\nHits@3:  ")[1].split("\n")[0]))
+    first_iter.append(float(chunk.split("\nHits@5:  ")[1].split("\n")[0]))
+    first_iter.append(float(chunk.split("\nHits@10:  ")[1].split("\n")[0]))
+    first_iter.append(float(chunk.split("\nHits@20:  ")[1].split("\n")[0]))
+    first_iter.append(float(chunk.split("\nauc:  ")[1].split("\n")[0]))
+    
+for i in range(num_rl):
+    raw_ckpt = []
+    zeroed_ckpt = []
+    with open(parsed['experiment'] + "/checkpoint_sl_epoch_"+str(i)+"/scores.txt","r") as scores:
+        chunk = scores.read().split("Final score:")[1]
+        raw_ckpt.append(float(chunk.split("Hits@1:  ")[1].split("\n")[0]))
+        raw_ckpt.append(float(chunk.split("\nHits@3:  ")[1].split("\n")[0]))
+        raw_ckpt.append(float(chunk.split("\nHits@5:  ")[1].split("\n")[0]))
+        raw_ckpt.append(float(chunk.split("\nHits@10:  ")[1].split("\n")[0]))
+        raw_ckpt.append(float(chunk.split("\nHits@20:  ")[1].split("\n")[0]))
+        raw_ckpt.append(float(chunk.split("\nauc:  ")[1].split("\n")[0]))
+        
+        zeroed_ckpt.append(float(chunk.split("Hits@1:  ")[1].split("\n")[0]) - first_iter[0])
+        zeroed_ckpt.append(float(chunk.split("\nHits@3:  ")[1].split("\n")[0]) - first_iter[1])
+        zeroed_ckpt.append(float(chunk.split("\nHits@5:  ")[1].split("\n")[0]) - first_iter[2])
+        zeroed_ckpt.append(float(chunk.split("\nHits@10:  ")[1].split("\n")[0]) - first_iter[3])
+        zeroed_ckpt.append(float(chunk.split("\nHits@20:  ")[1].split("\n")[0]) - first_iter[4])
+        zeroed_ckpt.append(float(chunk.split("\nauc:  ")[1].split("\n")[0]) - first_iter[5])
+    raw_data.append(raw_ckpt)
+    zeroed_data.append(zeroed_ckpt)
+
+raw_data = np.array(raw_data)
+zeroed_data = np.array(zeroed_data)
+f, ax = plt.subplots(figsize=(9, 6))
+sns.heatmap(raw_data, annot=True, fmt='.3g', linewidths=.5, ax=ax, xticklabels=['Hits@1','Hits@3','Hits@5','Hits@10','Hits@20','MRR'], yticklabels=lbls).figure.savefig(parsed['experiment'] + "/raw_heatmap.png")
+f, ax = plt.subplots(figsize=(9, 6))
+sns.heatmap(zeroed_data, annot=True, fmt='.3g', linewidths=.5, ax=ax, xticklabels=['Hits@1','Hits@3','Hits@5','Hits@10','Hits@20','MRR'], yticklabels=lbls).figure.savefig(parsed['experiment'] + "/zeroed_heatmap.png")
+
 #######################
 # Get training curves #
 #######################
 
+plt.rcParams.update({'font.size': 30})
+plt.figure(figsize=(25,12))
+
 path = parsed['experiment'] + '/log.txt'
 rl_len = parsed['iterations_rl']
 sl_len = parsed['iterations_sl']
-num_rl = len([name for name in os.listdir(".") if os.path.isdir(name) and "checkpoint_sl_epoch_" in name])
-num_sl = num_rl - 1
 colors = ['b', 'g', 'c', 'm', 'y', 'k', 'saddlebrown', 'coral', 'slategrey']
 
 with open(path, "r") as logfile:
@@ -62,7 +110,7 @@ for i in range(num_rl):
 plt.ylabel("Average reward per batch")
 plt.xlabel("Number of training batches")
 plt.legend(loc="lower right", ncol=1)
-plt.savefig(parsed['experiment'] + "avg_reward_per_batch.png")
+plt.savefig(parsed['experiment'] + "/avg_reward_per_batch.png")
 plt.clf()
 
 #############################
@@ -107,54 +155,8 @@ def getplots(lftext):
     return relation_x_plots, relation_y_plots
 
 relation_x_plots, relation_y_plots = getplots(lftext)
-for relation in relation_x_plots:
-    ax.plot(relation_x_plots[relation], relation_y_plots[relation], 'r')
+for count, relation in enumerate(relation_x_plots):
+    ax.plot(relation_x_plots[relation], relation_y_plots[relation], colors[count%9])
 
-plt.savefig(parsed['experiment'] + "relation_score_distribution.png")
+plt.savefig(parsed['experiment'] + "/relation_score_distribution.png")
 plt.clf()
-
-################
-# Get heatmaps #
-################
-
-lbls = list(range(num_rl))
-
-raw_data = []
-zeroed_data = []
-first_iter = []
-with open(path+"checkpoint_sl_epoch_0/scores.txt","r") as scores:
-    chunk = scores.read()
-    first_iter.append(float(chunk.split("Hits@1:  ")[-1].split("\n")[0]))
-    first_iter.append(float(chunk.split("\nHits@3:  ")[-1].split("\n")[0]))
-    first_iter.append(float(chunk.split("\nHits@5:  ")[-1].split("\n")[0]))
-    first_iter.append(float(chunk.split("\nHits@10:  ")[-1].split("\n")[0]))
-    first_iter.append(float(chunk.split("\nHits@20:  ")[-1].split("\n")[0]))
-    first_iter.append(float(chunk.split("\nauc:  ")[-1].split("\n")[0]))
-    
-for i in x:
-    raw_ckpt = []
-    zeroed_ckpt = []
-    with open(path+"checkpoint_sl_epoch_"+str(i)+"/scores.txt","r") as scores:
-        chunk = scores.read()
-        raw_ckpt.append(float(chunk.split("Hits@1:  ")[-1].split("\n")[0]))
-        raw_ckpt.append(float(chunk.split("\nHits@3:  ")[-1].split("\n")[0]))
-        raw_ckpt.append(float(chunk.split("\nHits@5:  ")[-1].split("\n")[0]))
-        raw_ckpt.append(float(chunk.split("\nHits@10:  ")[-1].split("\n")[0]))
-        raw_ckpt.append(float(chunk.split("\nHits@20:  ")[-1].split("\n")[0]))
-        raw_ckpt.append(float(chunk.split("\nauc:  ")[-1].split("\n")[0]))
-        
-        zeroed_ckpt.append(float(chunk.split("Hits@1:  ")[-1].split("\n")[0]) - first_iter[0])
-        zeroed_ckpt.append(float(chunk.split("\nHits@3:  ")[-1].split("\n")[0]) - first_iter[1])
-        zeroed_ckpt.append(float(chunk.split("\nHits@5:  ")[-1].split("\n")[0]) - first_iter[2])
-        zeroed_ckpt.append(float(chunk.split("\nHits@10:  ")[-1].split("\n")[0]) - first_iter[3])
-        zeroed_ckpt.append(float(chunk.split("\nHits@20:  ")[-1].split("\n")[0]) - first_iter[4])
-        zeroed_ckpt.append(float(chunk.split("\nauc:  ")[-1].split("\n")[0]) - first_iter[5])
-    raw_data.append(raw_ckpt)
-    zeroed_data.append(zeroed_ckpt)
-
-raw_data = np.array(raw_data)
-zeroed_data = np.array(zeroed_data)
-f, ax = plt.subplots(figsize=(9, 6))
-sns.heatmap(raw_data, annot=True, fmt='.3g', linewidths=.5, ax=ax, xticklabels=['Hits@1','Hits@3','Hits@5','Hits@10','Hits@20','MRR'], yticklabels=lbls).figure.savefig(path + "raw_heatmap.png")
-f, ax = plt.subplots(figsize=(9, 6))
-sns.heatmap(zeroed_data, annot=True, fmt='.3g', linewidths=.5, ax=ax, xticklabels=['Hits@1','Hits@3','Hits@5','Hits@10','Hits@20','MRR'], yticklabels=lbls).figure.savefig(path + "zeroed_heatmap.png")
