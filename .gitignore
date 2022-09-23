@@ -4,4 +4,10 @@ src/MINERVA/datasets/data_preprocessed/FB15K-237/
 src/MINERVA/datasets/data_preprocessed/FB60K-NYT10/
 src/MINERVA/datasets/data_preprocessed/NELL-995/
 src/MINERVA/datasets/data_preprocessed/WN18RR/
-__pycache__/
+src/MINERVA/code/model/__pycache__/
+src/MINERVA/code/data/__pycache__/
+src/MINERVA/code/__pycache__/
+src/ConvE/src/rl/graph_search/__pycache__/
+src/ConvE/src/emb/__pycache__/
+src/ConvE/src/__pycache__/
+*.pyc
