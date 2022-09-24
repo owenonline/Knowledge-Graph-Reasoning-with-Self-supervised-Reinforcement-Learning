@@ -137,27 +137,15 @@ class LFramework(nn.Module):
                                                                                                                                                                                                                             loss['print_loss'])
                 self.logger.info(outstr)
 
-                # training for RL+SL model is based in batches
-                if batch_count >= self.args.total_iterations and self.args.model != 'conve':
-                    break
+                if batch_count > 0 and batch_count % self.args.eval_every == 0 and not self.supervised_learning_mode:
+                    self.eval()
+                    self.batch_size = self.dev_batch_size
+                    dev_scores = self.forward(dev_data, verbose=False)
+                    scoresvalues = src.eval.hits_and_ranks(dev_data, dev_scores, self.kg.dev_objects, verbose=False)
+                    metrics = scoresvalues[-1]
 
-            # save model for conve
-            if self.args.model == 'conve':
-                self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id)
-
-            # Check in-progress scores for SL portion of RL+SL training, and save the best embedding model when running experiment_setup.sh for MultiHopKG-ConvE base model
-            if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0 and (self.supervised_learning_mode or self.args.model == 'conve'):
-
-                self.eval()
-                self.batch_size = self.dev_batch_size
-                dev_scores = self.forward(dev_data, verbose=False)
-                scoresvalues = src.eval.hits_and_ranks(dev_data, dev_scores, self.kg.dev_objects, verbose=False)
-                metrics = scoresvalues[-1]
-
-                print('Dev set performance: (include test set labels)')
-                in_progress_scores = src.eval.hits_and_ranks(dev_data, dev_scores, self.kg.all_objects, verbose=True)
-                
-                if self.model.startswith('point'):
+                    print('Dev set performance: (include test set labels)')
+                    in_progress_scores = src.eval.hits_and_ranks(dev_data, dev_scores, self.kg.all_objects, verbose=True)
 
                     # write in progress scores to scores file
                     with open(self.args.checkpoint_dir + "scores.txt", 'a+') as scoresfile:
@@ -173,13 +161,31 @@ class LFramework(nn.Module):
                         print('Decreasing action dropout rate: {} -> {}'.format(
                             old_action_dropout_rate, self.action_dropout_rate))
 
-                else:
-                    # save best conve model
-                    if metrics > best_dev_metrics:
-                        self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id, is_best=True)
-                        best_dev_metrics = metrics
-                        with open(os.path.join(self.model_dir, 'best_dev_iteration.dat'), 'w') as o_f:
-                            o_f.write('{}'.format(epoch_id))
+                # training for RL+SL model is based in batches
+                if batch_count >= self.args.total_iterations and self.args.model != 'conve':
+                    break
+
+            # save model for conve
+            if self.args.model == 'conve':
+                self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id)
+
+            # Check in-progress scores for SL portion of RL+SL training, and save the best embedding model when running experiment_setup.sh for MultiHopKG-ConvE base model
+            if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0 and self.args.model == 'conve':
+
+                self.eval()
+                self.batch_size = self.dev_batch_size
+                dev_scores = self.forward(dev_data, verbose=False)
+                scoresvalues = src.eval.hits_and_ranks(dev_data, dev_scores, self.kg.dev_objects, verbose=False)
+                metrics = scoresvalues[-1]
+
+                print('Dev set performance: (include test set labels)')
+                in_progress_scores = src.eval.hits_and_ranks(dev_data, dev_scores, self.kg.all_objects, verbose=True)
+                
+                if metrics > best_dev_metrics:
+                    self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id, is_best=True)
+                    best_dev_metrics = metrics
+                    with open(os.path.join(self.model_dir, 'best_dev_iteration.dat'), 'w') as o_f:
+                        o_f.write('{}'.format(epoch_id))
 
 
     def forward(self, examples, verbose=False):
