@@ -137,7 +137,8 @@ class LFramework(nn.Module):
                                                                                                                                                                                                                             loss['print_loss'])
                 self.logger.info(outstr)
 
-                if batch_count > 0 and batch_count % self.args.eval_every == 0 and not self.supervised_learning_mode:
+                # check in progress scores for RL portion of SSRL training
+                if batch_count > 0 and batch_count % self.args.eval_every == 0 and not self.supervised_learning_mode and not self.args.model == 'conve':
                     self.eval()
                     self.batch_size = self.dev_batch_size
                     dev_scores = self.forward(dev_data, verbose=False)
@@ -169,7 +170,7 @@ class LFramework(nn.Module):
             if self.args.model == 'conve':
                 self.save_checkpoint(checkpoint_id=epoch_id, epoch_id=epoch_id)
 
-            # Check in-progress scores for SL portion of RL+SL training, and save the best embedding model when running experiment_setup.sh for MultiHopKG-ConvE base model
+            # Save the best embedding model when running experiment_setup.sh for MultiHopKG-ConvE base model
             if epoch_id > 0 and epoch_id % self.num_peek_epochs == 0 and self.args.model == 'conve':
 
                 self.eval()
