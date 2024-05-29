@@ -1,7 +1,5 @@
 # Knowledge Graph Reasoning with Self-supervised Reinforcement Learning
-Official code for the following paper:
-
-PLACEHOLDER
+[arxiv](https://arxiv.org/abs/2405.13640)
 
 ![summary image of system architecture](docs/summary_image.png)
 
