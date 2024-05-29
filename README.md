@@ -83,10 +83,12 @@ If you use this code, please cite our paper and those referenced for the base mo
                31-November 4, 2018},
   year = {2018} 
 }
-@inproceedings{kgr-ssrl,
-  title = {Knowledge Graph Reasoning with Self-supervised Reinforcement Learning},
-  author = {Ying Ma, Owen Burns, Mingqiu Wang, Gang Li, Nan Du, Laurent Shafey, Izhak Shafran, Hagen Soltau},
-  booktitle = {AAAI},
-  year = 2022
+@misc{ma2024knowledge,
+      title={Knowledge Graph Reasoning with Self-supervised Reinforcement Learning}, 
+      author={Ying Ma and Owen Burns and Mingqiu Wang and Gang Li and Nan Du and Laurent El Shafey and Liqiang Wang and Izhak Shafran and Hagen Soltau},
+      year={2024},
+      eprint={2405.13640},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
 }
 ```
