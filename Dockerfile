@@ -1,5 +1,5 @@
 ARG IMAGE_NAME
-FROM nvidia/cuda:11.6.0-devel-ubuntu18.04 as base
+FROM nvidia/cuda:11.6.2-devel-ubuntu18.04 as base
 
 FROM base as base-amd64
 
@@ -36,15 +36,15 @@ RUN curl -L -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3
      chmod +x ~/miniconda.sh && \
      ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh && \
-     /opt/conda/bin/conda install -y python=$PYTHON_VERSION numpy pyyaml scipy ipython mkl mkl-include cython typing && \
+     /opt/conda/bin/conda install -y python=3.10 numpy pyyaml scipy ipython mkl mkl-include cython typing && \
      /opt/conda/bin/conda install -y -c pytorch magma-cuda116 && \
      /opt/conda/bin/conda clean -ya
 ENV PATH /opt/conda/bin:$PATH
 
 RUN conda install pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch -c conda-forge
-RUN conda install -c conda-forge tensorflow tensorflow=2.9.1
 
 RUN pip install --upgrade pip
+RUN pip install tensorflow[and-cuda]==2.9.1
 RUN pip install tqdm==4.64.0 &&\
      pip install matplotlib==3.5.2 &&\
      pip install seaborn==0.11.2
