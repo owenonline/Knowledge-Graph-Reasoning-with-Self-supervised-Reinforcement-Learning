@@ -5,6 +5,7 @@ from collections import defaultdict
 import csv
 import random
 import os
+import tensorflow as tf
 
 class RelationEntityBatcher():
     def __init__(self, rl, orig, dataset,batch_size, entity_vocab, relation_vocab, mode = "train", num_rollouts=20):
@@ -129,14 +130,16 @@ class RelationEntityBatcher():
             for i in range(e1.shape[0]):
                 all_e2s.append(self.store_all_correct[(e1[i], r[i])])
 
-            #generates correct path numbers
-            labels=[[],[],[]]
-            for i in range(len(batch)):
-                labeller.correct_path(batch[i])
+            all_e2s_list = [list(s) for s in all_e2s]
+            all_e2s_rt = tf.ragged.constant(all_e2s_list, dtype=tf.int32)
+
+            e1 = tf.convert_to_tensor(e1, dtype=tf.int32)
+            r = tf.convert_to_tensor(r, dtype=tf.int32)
+            e2 = tf.convert_to_tensor(e2, dtype=tf.int32)
 
             assert e1.shape[0] == e2.shape[0] == r.shape[0] == len(all_e2s)
             if self.rl:
-                yield e1, r, e2, all_e2s
+                yield e1, r, e2, all_e2s_rt
             else:
                 #generates correct paths
                 labels=[[],[],[]]
@@ -147,9 +150,12 @@ class RelationEntityBatcher():
                         labels[0].append(correct[0])
                         labels[1].append(correct[1])
                         labels[2].append(correct[2])
+
+                labels = [tf.convert_to_tensor(label, dtype=tf.int32) for label in labels]
+
                 print("{} paths not found out of {} ({:.0%})".format(labeller.no_paths_found, len(batch), labeller.no_paths_found/(len(batch))))
                 labeller.no_paths_found = 0
-                yield e1, r, e2, all_e2s, labels
+                yield e1, r, e2, all_e2s_rt, labels
 
     def yield_next_batch_test(self):
         remaining_triples = self.store.shape[0]

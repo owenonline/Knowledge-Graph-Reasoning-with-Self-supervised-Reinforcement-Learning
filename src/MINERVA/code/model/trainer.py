@@ -28,14 +28,14 @@ def moving_average(a, n=3) :
     return ret[n - 1:] / n
 
 class Trainer(object):
-    def __init__(self, params, train_type, reward_type):
+    def __init__(self, params, train_type, reward_type, strategy):
         # transfer parameters to self
         for key, val in params.items(): setattr(self, key, val)
 
+        self.strategy = strategy
         self.rl = train_type == "reinforcement"
         self.original_reward = reward_type == "original"
 
-        self.agent = Agent(params)
         self.save_path = None
         self.train_environment = env(params, 'train', self.rl, self.original_reward)
         self.dev_test_environment = env(params, 'dev', True, True)
@@ -50,9 +50,11 @@ class Trainer(object):
         self.decaying_beta = tf.keras.optimizers.schedules.ExponentialDecay(self.beta,decay_steps=200,decay_rate=0.90, staircase=True)
 
         # optimize
-        self.baseline = ReactiveBaseline(l=self.Lambda)
-        self.optimizer = tf.keras.optimizers.Adam(self.learning_rate)
-        self.cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
+        with strategy.scope():
+            self.agent = Agent(params)
+            self.optimizer = tf.keras.optimizers.Adam(self.learning_rate)
+            self.baseline = ReactiveBaseline(l=self.Lambda)
+            self.cce = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
 
         # prepare to collect the agent's score on the different relations
         if not self.rl:
@@ -121,6 +123,119 @@ class Trainer(object):
 
         return cum_disc_reward
 
+    @tf.function
+    def distributed_train_step(self, episode_data):
+        # Distribute the training step across replicas
+        per_replica_losses, per_replica_rewards = self.strategy.run(self.train_step, args=(episode_data,))
+        return per_replica_losses, per_replica_rewards
+
+    def train_step(self, episode):
+        # Unpack episode data and ensure tensors are appropriately batched
+        if not self.rl:
+            for relation in episode.query_relation:
+                self.relation_counts[relation] += 1
+
+        # Initialize necessary variables
+        model_state = self.agent.state_init
+        prev_relation = self.agent.relation_init
+        query_relation = episode.get_query_relation()
+        query_embedding = self.agent.get_query_embedding(query_relation)
+        state = episode.get_state()
+
+        # For use with SL
+        last_step = [("N/A",)] * (self.batch_size * self.num_rollouts)
+
+        # For each time step
+        with tf.GradientTape() as tape:
+            supervised_learning_loss = []
+            loss_before_regularization = []
+            logits_all = []
+
+            for i in range(self.path_length):
+                loss, model_state, logits, idx, prev_relation, scores = self.agent.step(
+                    state['next_relations'],
+                    state['next_entities'],
+                    model_state,
+                    prev_relation,
+                    query_embedding,
+                    state['current_entities'],
+                    range_arr=self.range_arr,
+                )
+
+                if self.rl:
+                    loss_before_regularization.append(loss)
+                    logits_all.append(logits)
+                else:
+                    normalized_scores = self.normalize_scores(scores)
+
+                    active_length = scores.shape[0]
+                    choices = scores.shape[1]
+
+                    correct = np.full((active_length, choices), 0)
+
+                    for batch_num in range(len(episode.correct_path[i])):
+                        try:
+                            valid = episode.correct_path[i][batch_num][last_step[batch_num]]
+                        except:
+                            valid = episode.backtrack(batch_num)
+
+                        # If no paths were found, set the label equal to the score so nothing gets changed
+                        if len(valid) == 1 and valid[0] == -1:
+                            correct[np.array([batch_num] * len(valid), int), :] = normalized_scores[batch_num]
+                        else:
+                            correct[np.array([batch_num] * len(valid), int), np.array(valid, int)] = np.ones(len(valid))
+
+                    current_actions = idx.numpy()
+                    last_step = [tuple(list(x) + [y]) for (x, y) in zip(last_step, current_actions)]
+
+                    tensorized = tf.convert_to_tensor(correct)
+                    normalized = self.normalize_scores(scores)
+                    loss = self.cce(tensorized, normalized)
+
+                    supervised_learning_loss.append(loss)
+
+                state = episode(idx)
+
+            # Get the final reward from the environment
+            rewards = episode.get_reward()
+
+            if not self.rl:
+                # Update the list of incorrect queries
+                correct_queries = [
+                    [e1, r, e2]
+                    for (e1, r, e2, reward) in zip(
+                        episode.start_entities, episode.query_relation, episode.end_entities, rewards
+                    )
+                    if reward == episode.positive_reward
+                ]
+                for query in correct_queries:
+                    self.relation_scores[query[1]] += 1
+
+            # Compute loss
+            if self.rl:
+                cum_discounted_reward = self.calc_cum_discounted_reward(rewards)  # [B, T]
+                batch_total_loss = self.calc_reinforce_loss(
+                    cum_discounted_reward, loss_before_regularization, logits_all
+                )
+            else:
+                sl_loss_float64 = [tf.cast(x, tf.float64) for x in supervised_learning_loss]
+                reduced_sum = tf.reduce_sum(sl_loss_float64, 0)
+                square = tf.math.square(reduced_sum)
+                supervised_learning_total_loss = tf.math.reduce_mean(square)
+
+        # Update weights
+        if self.rl:
+            gradients = tape.gradient(batch_total_loss, self.agent.trainable_variables)
+        else:
+            gradients = tape.gradient(supervised_learning_total_loss, self.agent.trainable_variables)
+
+        gradients, _ = tf.clip_by_global_norm(gradients, self.grad_clip_norm)
+        self.optimizer.apply_gradients(zip(gradients, self.agent.trainable_variables))
+
+        # Return values needed for logging or further computation
+        loss_value = batch_total_loss if self.rl else supervised_learning_total_loss
+        return loss_value, rewards
+
     def train(self):
         train_loss = 0.0
         self.batch_counter = 0
@@ -129,100 +244,19 @@ class Trainer(object):
 
         for episode in self.train_environment.get_episodes():
 
-            if not self.rl:
-                for relation in episode.query_relation:
-                    self.relation_counts[relation] += 1
-
             # get initial values
             self.batch_counter += 1
-            model_state = self.agent.state_init
-            prev_relation = self.agent.relation_init            
-            query_relation = episode.get_query_relation()
-            query_embedding = self.agent.get_query_embedding(query_relation)
-            state = episode.get_state()
 
-            # for use with SL
-            last_step = [("N/A",)]*(self.batch_size*self.num_rollouts)
+            # call distributed train step
+            per_replica_losses, per_replica_rewards = self.distributed_train_step(episode)
 
-            # for each time step
-            with tf.GradientTape() as tape:
-                supervised_learning_loss = []
-                loss_before_regularization = []
-                logits_all = []
-
-                for i in range(self.path_length):
-                    loss, model_state, logits, idx, prev_relation, scores = self.agent.step(state['next_relations'],
-                                                                                  state['next_entities'],
-                                                                                  model_state, prev_relation, query_embedding,
-                                                                                  state['current_entities'],  
-                                                                                  range_arr=self.range_arr)
-                    if self.rl:
-                        loss_before_regularization.append(loss)
-                        logits_all.append(logits)
-                    else:
-                        normalized_scores = self.normalize_scores(scores)
-
-                        active_length=scores.shape[0]
-                        choices=scores.shape[1]
-
-                        correct=np.full((active_length,choices),0)
-
-                        for batch_num in range(len(episode.correct_path[i])):
-                            try:
-                                valid = episode.correct_path[i][batch_num][last_step[batch_num]]
-                            except:
-                                valid = episode.backtrack(batch_num)
-
-                            # if no paths were found, set the label equal to the score so nothing gets changed
-                            if len(valid) == 1 and valid[0] == -1:
-                                correct[np.array([batch_num]*len(valid), int), :] = normalized_scores[batch_num]
-                            else:
-                                correct[np.array([batch_num]*len(valid), int),np.array(valid, int)] = np.ones(len(valid))
-
-                        current_actions = idx.numpy()
-                        last_step = [tuple(list(x) + [y]) for (x, y) in zip(last_step, current_actions)]
-
-                        tensorized = tf.convert_to_tensor(correct)
-                        normalized = self.normalize_scores(scores)
-                        loss = self.cce(tensorized, normalized)
-                        
-                        supervised_learning_loss.append(loss)
-
-                    state = episode(idx)
-
-                # get the final reward from the environment
-                rewards = episode.get_reward()
-
-                if not self.rl:
-
-                    # update the list of incorrect queries. We have a dictionary with the number of times the agent got the query wrong
-                    # and a list of the actual queries sorted by the values stored in that dictionary. That way, the queries the agent
-                    # has gotten wrong the most stay at the top
-                    correct_queries = [[e1, r, e2] for (e1, r, e2, reward) in zip(episode.start_entities, episode.query_relation, episode.end_entities, rewards) if reward == episode.positive_reward]
-                    for query in correct_queries:
-                        self.relation_scores[query[1]] += 1
-
-                # compute loss
-                if self.rl:
-                    cum_discounted_reward = self.calc_cum_discounted_reward(rewards)  # [B, T]
-                    batch_total_loss = self.calc_reinforce_loss(cum_discounted_reward,loss_before_regularization,logits_all)
-                else:
-                    sl_loss_float64 = [tf.cast(x, tf.float64) for x in supervised_learning_loss]
-                    reduced_sum = tf.reduce_sum(sl_loss_float64,0)
-                    square = tf.math.square(reduced_sum)
-                    supervised_learning_total_loss = tf.math.reduce_mean(square)
-
-            # update weights
-            if self.rl:
-                gradients = tape.gradient(batch_total_loss, self.agent.trainable_variables)
-            else:
-                gradients = tape.gradient(supervised_learning_total_loss, self.agent.trainable_variables)
-
-            gradients, _ = tf.clip_by_global_norm(gradients, self.grad_clip_norm)
-            self.optimizer.apply_gradients(zip(gradients, self.agent.trainable_variables))        
+            # Aggregate losses and rewards across replicas
+            total_loss = self.strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
+            rewards = self.strategy.experimental_local_results(per_replica_rewards)
+            rewards = np.concatenate([reward.numpy() for reward in rewards], axis=0)
 
             # print statistics
-            train_loss = 0.98 * train_loss + 0.02 * (batch_total_loss if self.rl else supervised_learning_total_loss)
+            train_loss = 0.98 * train_loss + 0.02 * total_loss.numpy()
             avg_reward = np.mean(rewards)
             reward_reshape = np.reshape(rewards, (self.batch_size, self.num_rollouts))
             reward_reshape = np.sum(reward_reshape, axis=1)
@@ -583,7 +617,7 @@ if __name__ == '__main__':
     logger.info('Total number of relations {}'.format(len(options['relation_vocab'])))
     save_path = ''
 
-    def make_sl_checkpoint(last_epoch, options):
+    def make_sl_checkpoint(last_epoch, options, strategy):
         original_model_dir = options['model_dir']
         
         # make checkpoint folder
@@ -595,8 +629,9 @@ if __name__ == '__main__':
         options['model_dir'] = options['output_dir']+'/model_weights/'
 
         # make trainer
-        trainer = Trainer(options, "reinforcement", "original")
-        trainer.agent.load_weights(original_model_dir)
+        with strategy.scope():
+            trainer = Trainer(options, "reinforcement", "original", strategy)
+            trainer.agent.load_weights(original_model_dir)
 
         # do RL training
         trainer.train()
@@ -610,17 +645,21 @@ if __name__ == '__main__':
         trainer.agent.save_weights(options['model_dir'] + options['model_name'])
 
     original_options = copy.deepcopy(options)
-    
-    # create SL Trainer
     options['learning_rate'] = options['learning_rate_sl']
-    sl_trainer = Trainer(options, "supervised", "our")
+
+    # create SL Trainer and strategy
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
+        sl_trainer = Trainer(options, "supervised", "our", strategy)
+
+    print("created trainer")
 
     # Create checkpoint for pure RL run
     last_epoch = 0
     sl_trainer.agent.save_weights(options['model_dir'])
-    make_sl_checkpoint(last_epoch, copy.deepcopy(original_options))
+    make_sl_checkpoint(last_epoch, copy.deepcopy(original_options), strategy)
     sl_trainer.agent.load_weights(options['model_dir'])
-    
+
     # Create SL checkpoints
     for ckpt in range(1, options['sl_checkpoints']):
         # train SL, then log the number of new labels seen by the agent and the agent's score on different relations
@@ -631,5 +670,5 @@ if __name__ == '__main__':
 
         # train RL and create checkpoint
         sl_trainer.agent.save_weights(options['model_dir'])
-        make_sl_checkpoint(ckpt, copy.deepcopy(original_options))
+        make_sl_checkpoint(ckpt, copy.deepcopy(original_options), strategy)
         sl_trainer.agent.load_weights(options['model_dir'])

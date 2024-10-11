@@ -1,6 +1,7 @@
 from collections import defaultdict
 import logging
 import numpy as np
+import tensorflow as tf
 # import csv
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ class RelationEntityGrapher:
         self.relation_vocab = relation_vocab
         self.entity_vocab = entity_vocab
         self.store = defaultdict(list)
-        self.array_store = np.ones((len(entity_vocab), max_num_actions, 2), dtype=np.dtype('int32'))
+        self.array_store = np.ones((len(entity_vocab), max_num_actions, 2), dtype=np.int32)
         self.array_store[:, :, 0] *= self.ePAD
         self.array_store[:, :, 1] *= self.rPAD
         self.masked_array_store = None
@@ -49,18 +50,26 @@ class RelationEntityGrapher:
                 num_actions += 1
         del self.store
         self.store = None
+        self.array_store = tf.convert_to_tensor(self.array_store)
 
     def return_next_actions(self, current_entities, start_entities, query_relations, answers, all_correct_answers, last_step, rollouts):
-        ret = self.array_store[current_entities, :, :].copy()
+        ret = tf.gather(self.array_store, current_entities)
+        start_entities = tf.convert_to_tensor(start_entities, dtype=tf.int32)
+        query_relations = tf.convert_to_tensor(query_relations, dtype=tf.int32)
+        answers = tf.convert_to_tensor(answers, dtype=tf.int32)
         # if np.any(np.isnan(ret[:, :, 0])):
         #     print("ret contains nan")
         for i in range(current_entities.shape[0]):
             if current_entities[i] == start_entities[i]:
                 relations = ret[i, :, 1]
                 entities = ret[i, :, 0]
-                mask = np.logical_and(relations == query_relations[i] , entities == answers[i])
-                ret[i, :, 0][mask] = self.ePAD
-                ret[i, :, 1][mask] = self.rPAD
+                mask = tf.logical_and(
+                    tf.equal(ret[:, :, 1], query_relations[:, tf.newaxis]),
+                    tf.equal(ret[:, :, 0], answers[:, tf.newaxis])
+                )
+                ret_entities = tf.where(mask, self.ePAD, ret[:, :, 0])
+                ret_relations = tf.where(mask, self.rPAD, ret[:, :, 1])
+                ret = tf.stack([ret_entities, ret_relations], axis=-1)
             if last_step:
                 entities = ret[i, :, 0]
                 relations = ret[i, :, 1]
@@ -68,6 +77,11 @@ class RelationEntityGrapher:
                 correct_e2 = answers[i]
                 for j in range(entities.shape[0]):
                     #print(i/rollouts,j,i,rollouts)
+                    print(type(entities))
+                    print(type(all_correct_answers))
+                    entities[i]
+                    entities[j]
+                    all_correct_answers[int(i/rollouts)]
                     if entities[j] in all_correct_answers[int(i/rollouts)] and entities[j] != correct_e2:
                         entities[j] = self.ePAD
                         relations[j] = self.rPAD

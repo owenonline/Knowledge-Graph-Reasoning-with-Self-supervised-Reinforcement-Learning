@@ -5,6 +5,7 @@ from code.data.feed_data import RelationEntityBatcher
 from code.data.grapher import RelationEntityGrapher
 from code.data.label_gen import Labeller
 import logging
+import tensorflow as tf
 
 logger = logging.getLogger()
 
@@ -47,9 +48,9 @@ class Episode(object):
                                                         self.end_entities, self.all_answers, self.current_hop == self.path_len - 1,
                                                         self.num_rollouts)
         self.state = {}
-        self.state['next_relations'] = next_actions[:, :, 1]
-        self.state['next_entities'] = next_actions[:, :, 0]
-        self.state['current_entities'] = self.current_entities
+        self.state['next_relations'] = tf.convert_to_tensor(next_actions[:, :, 1], dtype=tf.int32)
+        self.state['next_entities'] = tf.convert_to_tensor(next_actions[:, :, 0], dtype=tf.int32)
+        self.state['current_entities'] = tf.convert_to_tensor(self.current_entities, dtype=tf.int32)
 
     def get_many_to_one(self):
         # check if the number of actions at e1 is greater than the number of actions at e2
@@ -79,7 +80,11 @@ class Episode(object):
     def __call__(self, action):
         self.current_hop += 1
         self.last_entities=self.current_entities
-        self.current_entities = self.state['next_entities'][np.arange(self.no_examples*self.num_rollouts), action]
+        batch_indices = tf.range(tf.shape(self.current_entities)[0])
+        self.current_entities = tf.gather_nd(
+            self.state['next_entities'], 
+            tf.stack([batch_indices, action], axis=1)
+        )
 
         next_actions = self.grapher.return_next_actions(self.current_entities, self.start_entities, self.query_relation,
                                                         self.end_entities, self.all_answers, self.current_hop == self.path_len - 1,

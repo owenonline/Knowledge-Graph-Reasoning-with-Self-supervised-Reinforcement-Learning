@@ -65,7 +65,7 @@ class Labeller(object):
         return str(arr[0])+str(arr[1])+str(arr[2])
         
     # generate label for the training data
-    def mask_out_right_answer(self, ret,query_relations,answers):
+    def mask_out_right_answer(self, ret, query_relations,answers):
         # ret is all the actions and transitions at the state e1
         relations = ret[:, 1]
         entities = ret[:, 0]
