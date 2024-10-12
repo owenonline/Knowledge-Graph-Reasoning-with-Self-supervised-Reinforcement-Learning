@@ -70,20 +70,35 @@ class RelationEntityGrapher:
                 ret_entities = tf.where(mask, self.ePAD, ret[:, :, 0])
                 ret_relations = tf.where(mask, self.rPAD, ret[:, :, 1])
                 ret = tf.stack([ret_entities, ret_relations], axis=-1)
-            if last_step:
-                entities = ret[i, :, 0]
-                relations = ret[i, :, 1]
+            # if last_step:
+            #     entities = ret[i, :, 0]
+            #     relations = ret[i, :, 1]
 
-                correct_e2 = answers[i]
-                for j in range(entities.shape[0]):
-                    #print(i/rollouts,j,i,rollouts)
-                    print(type(entities))
-                    print(type(all_correct_answers))
-                    entities[i]
-                    entities[j]
-                    all_correct_answers[int(i/rollouts)]
-                    if entities[j] in all_correct_answers[int(i/rollouts)] and entities[j] != correct_e2:
-                        entities[j] = self.ePAD
-                        relations[j] = self.rPAD
+            #     correct_e2 = answers[i]
+            #     for j in range(entities.shape[0]):
+            #         #print(i/rollouts,j,i,rollouts)
+            #         # print(type(entities))
+            #         # print(type(all_correct_answers))
+            #         # print(entities[i])
+            #         # print(all_correct_answers[int(i/rollouts)])
+            #         # if entities[j] in all_correct_answers[int(i/rollouts)] and entities[j] != correct_e2:
+            #         #     entities[j] = self.ePAD
+            #         #     relations[j] = self.rPAD
+
+            #         is_in_all_correct_answers = tf.reduce_any(tf.equal(entities[j], all_correct_answers[int(i/rollouts)]))
+            #         is_not_correct_e2 = tf.not_equal(entities[j], correct_e2)
+            #         condition = tf.logical_and(is_in_all_correct_answers, is_not_correct_e2)
+                    
+            #         # Use tf.cond to perform conditional assignment
+            #         entities[j] = tf.cond(
+            #             condition,
+            #             lambda: self.ePAD,
+            #             lambda: entities[j]
+            #         )
+            #         relations[j] = tf.cond(
+            #             condition,
+            #             lambda: self.rPAD,
+            #             lambda: relations[j]
+            #         )
 
         return ret

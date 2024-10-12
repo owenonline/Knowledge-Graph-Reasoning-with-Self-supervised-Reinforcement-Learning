@@ -112,14 +112,29 @@ class Trainer(object):
         :param gamma:
         :return:
         """
-        running_add = np.zeros([rewards.shape[0]])  
-        cum_disc_reward = np.zeros([rewards.shape[0], self.path_length])  
+        batch_size = tf.shape(rewards)[0]
+        path_length = self.path_length
+        gamma = self.gamma
 
-        # set the last time step to the reward received at the last state
-        cum_disc_reward[:, self.path_length - 1] = rewards
-        for t in reversed(range(self.path_length)):
-            running_add = self.gamma * running_add + cum_disc_reward[:, t]
-            cum_disc_reward[:, t] = running_add
+        # Initialize cum_disc_reward as zeros tensor
+        cum_disc_reward = tf.zeros([batch_size, path_length], dtype=rewards.dtype)
+
+        # Set the last time step to the reward received at the last state
+        indices = tf.stack([tf.range(batch_size), tf.fill([batch_size], path_length - 1)], axis=1)
+        cum_disc_reward = tf.tensor_scatter_nd_update(cum_disc_reward, indices, rewards)
+
+        # Initialize running_add as zeros tensor
+        running_add = tf.zeros([batch_size], dtype=rewards.dtype)
+
+        # Reverse loop to compute cumulative discounted rewards
+        for t in reversed(range(path_length)):
+            reward_t = cum_disc_reward[:, t]
+            running_add = gamma * running_add + reward_t
+            cum_disc_reward = tf.tensor_scatter_nd_update(
+                cum_disc_reward,
+                tf.stack([tf.range(batch_size), tf.fill([batch_size], t)], axis=1),
+                running_add
+            )
 
         return cum_disc_reward
 

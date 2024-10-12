@@ -69,12 +69,11 @@ class Episode(object):
         return np.where(self.state['next_entities'][batch, :] == self.last_entities[batch])[0]
 
     def get_reward(self):
-        reward = (self.current_entities == self.end_entities)
+        reward = tf.equal(self.current_entities, self.end_entities)  # [B,]
 
-        # set the True and False values to the values of positive and negative rewards.
-        condlist = [reward == True, reward == False]
-        choicelist = [self.positive_reward, self.negative_reward]
-        reward = np.select(condlist, choicelist)  # [B,]
+        # Use tf.where to assign positive_reward where condition is True, else negative_reward
+        reward = tf.where(reward, self.positive_reward, self.negative_reward)
+
         return reward
 
     def __call__(self, action):
