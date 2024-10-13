@@ -7,6 +7,7 @@ import argparse
 import os
 import seaborn as sns
 from collections import defaultdict
+import matplotlib.ticker as mticker
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment", default="", type=str)
@@ -119,13 +120,12 @@ plt.clf()
 
 relation_dist = {}
 checkpoints = {}
-plt.rcParams.update({'font.size': 24})
 
 fig, ax = plt.subplots(1)
 ax.set_ylabel("% correct out of total appearances")
 ax.set_xlabel("% of dataset")
 fig.tight_layout()
-fig.set_size_inches(17.5, 16.5)
+fig.set_size_inches(15,10)
 def getplots(lftext):
     text = re.findall('.*\/.*relation ckpt .*', lftext)
     for line in text:
@@ -146,17 +146,45 @@ def getplots(lftext):
         checkpoints[checkpoint_num]['relation_appearances'][relation] = total
         relation_dist[relation] = ofset
 
-    relation_x_plots = defaultdict(list)
-    relation_y_plots = defaultdict(list)
-    for checkpoint in checkpoints:
-        for relation in checkpoints[checkpoint]['relation_correct']:
-            relation_x_plots[relation].append(relation_dist[relation])
-            relation_y_plots[relation].append(checkpoints[checkpoint]['relation_correct'][relation]/checkpoints[checkpoint]['relation_appearances'][relation])
-    return relation_x_plots, relation_y_plots
+    keylist = list(checkpoints.keys())
+    first_ckpt = min(keylist)
+    last_ckpt = max(keylist)
 
-relation_x_plots, relation_y_plots = getplots(lftext)
-for count, relation in enumerate(relation_x_plots):
-    ax.plot(relation_x_plots[relation], relation_y_plots[relation], colors[count%9])
+    r_x = {}#defaultdict(list)
+    r_y = {}#defaultdict(list)
+    r_c = {}
 
+    for relation in checkpoints[first_ckpt]['relation_correct']:
+        r_x[relation] = relation_dist[relation]*100
+        initial_score = checkpoints[first_ckpt]['relation_correct'][relation]/checkpoints[first_ckpt]['relation_appearances'][relation]
+        final_score = checkpoints[last_ckpt]['relation_correct'][relation]/checkpoints[last_ckpt]['relation_appearances'][relation]
+        r_y[relation] = final_score*100
+        r_c[relation] = (final_score - initial_score)*100
+
+    return r_x, r_y, r_c
+
+relation_x_plots, relation_y_plots, relation_colors = getplots(lftext)
+
+x_vals = list(relation_x_plots.values())
+y_vals = list(relation_y_plots.values())
+color_vals = list(relation_colors.values())
+
+def formatter(x, pos):
+    del pos
+    return f"{x:.0f}%"
+
+sc = ax.scatter(x_vals, y_vals, c=color_vals, cmap='coolwarm', edgecolor='k')
+plt.colorbar(sc, label="Change in % correct after training")
+ax.set_xlabel("Percentage of dataset")
+ax.set_ylabel("Percent correct out of total appearances")
+ax.set_xscale('log')
+plt.rcParams.update({'font.size': 36})
+ax.set_xticks([1, 10, 50])
+ax.set_xticks([], minor=True)
+ax.xaxis.set_major_formatter(formatter)
+ax.yaxis.set_major_formatter(formatter)
+
+
+plt.tight_layout()
 plt.savefig(parsed['experiment'] + "/relation_score_distribution.png")
 plt.clf()

@@ -260,6 +260,7 @@ class Trainer(object):
         all_final_reward_20 = 0
         auc = 0
 
+        total_examples = self.test_environment.total_no_examples
         if extras:
             all_final_reward_1_to_one = 0
             all_final_reward_3_to_one = 0
@@ -269,7 +270,7 @@ class Trainer(object):
             all_final_reward_3_to_many = 0
             all_final_reward_10_to_many = 0
 
-            total_examples = self.test_environment.total_no_examples
+            
             total_examples_to_one = 0
             total_examples_to_many = 0
         for episode in tqdm(self.test_environment.get_episodes()):
