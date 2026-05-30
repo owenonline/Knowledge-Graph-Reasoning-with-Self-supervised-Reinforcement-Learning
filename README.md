@@ -8,7 +8,7 @@ Official code for the following paper: [arxiv](https://arxiv.org/abs/2405.13640)
 #### Use Docker
 Build the docker image
 ```
-docker build -< Dockerfile -t kg_ssrl:v1.0
+docker build -f Dockerfile -t kg_ssrl:v1.0 .
 ```
 
 Spin up a docker container and run experiments inside it.

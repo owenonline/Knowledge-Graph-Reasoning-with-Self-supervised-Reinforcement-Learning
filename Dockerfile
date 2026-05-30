@@ -1,5 +1,5 @@
 ARG IMAGE_NAME
-FROM nvidia/cuda:11.6.0-devel-ubuntu18.04 as base
+FROM nvcr.io/nvidia/cuda:11.6.0-devel-ubuntu18.04 as base
 
 FROM base as base-amd64
 
@@ -32,9 +32,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          libxft-dev &&\
      rm -rf /var/lib/apt/lists/*
 
-RUN curl -L -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+SHELL ["/bin/bash", "-c"]
+RUN curl -L -o ~/miniconda.sh -O  https://repo.anaconda.com/miniconda/Miniconda3-py37_22.11.1-1-Linux-x86_64.sh  && \
      chmod +x ~/miniconda.sh && \
-     ~/miniconda.sh -b -p /opt/conda && \
+     bash ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh && \
      /opt/conda/bin/conda install -y python=$PYTHON_VERSION numpy pyyaml scipy ipython mkl mkl-include cython typing && \
      /opt/conda/bin/conda install -y -c pytorch magma-cuda116 && \
